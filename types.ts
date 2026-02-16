@@ -90,11 +90,14 @@ export interface SubscriptionDetails {
     last4: string;
   };
   invoices: Invoice[];
+  stripeSubscriptionId?: string;
+  cancelAtPeriodEnd?: boolean;
 }
 
 export interface UserProfile {
   id: string;
   fullName: string;
+  email: string;
   phone?: string;
   role: UserRole;
   plan: SubscriptionPlan;
@@ -105,6 +108,9 @@ export interface UserProfile {
   baselineMonthlyPlates: number;
   targetMarginPercent: number;
   subscription?: SubscriptionDetails;
+  status: 'active' | 'disabled';
+  createdAt: string;
+  lastLogin: string;
 }
 
 export interface AIPriceRecommendation {
@@ -122,16 +128,19 @@ export interface AuditLog {
   action: string;
   entityType: string;
   entityName: string;
+  restaurantId?: string;
   metadata: any;
 }
 
 export interface AIUsageLog {
   id: string;
   restaurantName: string;
+  userName: string;
   feature: string;
   tokens: number;
   cost: number;
   timestamp: string;
+  status: 'success' | 'fail';
 }
 
 export interface SystemConfig {
@@ -139,4 +148,42 @@ export interface SystemConfig {
   globalAnnouncement: string;
   aiFeaturesEnabled: boolean;
   eliteTrialDays: number;
+  featureFlags: {
+    salesImport: boolean;
+    pdfExport: boolean;
+    aiHub: boolean;
+  };
+}
+
+export interface SupportTicket {
+  id: string;
+  restaurantName: string;
+  userName: string;
+  category: 'billing' | 'import' | 'ai' | 'bug';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  status: 'open' | 'assigned' | 'closed';
+  message: string;
+  createdAt: string;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  body: string;
+  targetPlan: 'all' | SubscriptionPlan;
+  targetRegion: 'all' | 'Iraq';
+  startTime: string;
+  endTime: string;
+  ctaLink?: string;
+}
+
+export interface ImportLog {
+  id: string;
+  restaurantName: string;
+  fileName: string;
+  type: 'daily' | 'weekly' | 'monthly';
+  rowsCount: number;
+  timestamp: string;
+  status: 'success' | 'fail';
+  anomalies: string[];
 }

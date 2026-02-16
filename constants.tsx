@@ -21,7 +21,13 @@ import {
   Lock,
   Megaphone,
   Activity,
-  Cpu
+  Cpu,
+  LifeBuoy,
+  Layers,
+  Database,
+  FileSearch,
+  Ticket,
+  Link2
 } from 'lucide-react';
 
 export const NAV_ITEMS = [
@@ -39,18 +45,24 @@ export const NAV_ITEMS = [
 ];
 
 export const ADMIN_NAV_ITEMS = [
-  { label: 'نظرة عامة', path: 'admin/dashboard', icon: <Activity size={20} /> },
+  { label: 'الرئيسية', path: 'admin/dashboard', icon: <Activity size={20} /> },
   { label: 'المستخدمين', path: 'admin/users', icon: <Users size={20} /> },
   { label: 'المطاعم', path: 'admin/restaurants', icon: <Store size={20} /> },
-  { label: 'الاشتراكات', path: 'admin/subscriptions', icon: <CreditCard size={20} /> },
-  { label: 'مراقبة الـ AI', path: 'admin/ai', icon: <Cpu size={20} /> },
+  { label: 'الاشتراكات', path: 'admin/subscriptions', icon: <ShieldCheck size={20} /> },
+  { label: 'الفوترة والمدفوعات', path: 'admin/billing', icon: <CreditCard size={20} /> },
+  { label: 'الاستخدام والحدود', path: 'admin/usage', icon: <Layers size={20} /> },
+  { label: 'وحدة الـ AI', path: 'admin/ai', icon: <Cpu size={20} /> },
+  { label: 'الربط والتكامل', path: 'admin/integrations', icon: <Link2 size={20} /> },
+  { label: 'الاستيرادات والملفات', path: 'admin/imports', icon: <FileSearch size={20} /> },
+  { label: 'تذاكر الدعم', path: 'admin/support', icon: <Ticket size={20} /> },
+  { label: 'إدارة المحتوى', path: 'admin/content', icon: <Database size={20} /> },
   { label: 'سجل التدقيق', path: 'admin/audit', icon: <History size={20} /> },
-  { label: 'الإعلانات العامة', path: 'admin/announcements', icon: <Megaphone size={20} /> },
+  { label: 'الإعلانات', path: 'admin/announcements', icon: <Megaphone size={20} /> },
   { label: 'إعدادات النظام', path: 'admin/settings', icon: <Settings size={20} /> },
 ];
 
-export const PLAN_LIMITS = {
-  FREE: { ingredients: 30, recipes: 20, salesImport: false },
-  PRO: { ingredients: Infinity, recipes: Infinity, salesImport: true },
-  ELITE: { ingredients: Infinity, recipes: Infinity, salesImport: true, aiHub: true },
+export const PLAN_LIMITS_DEFAULTS = {
+  FREE: { ingredients: 30, recipes: 20, salesImport: false, staff: 1, aiRequests: 0, uploadLimit: '5MB' },
+  PRO: { ingredients: Infinity, recipes: Infinity, salesImport: true, staff: 2, aiRequests: 50, uploadLimit: '20MB' },
+  ELITE: { ingredients: Infinity, recipes: Infinity, salesImport: true, staff: 5, aiRequests: 1000, uploadLimit: '100MB' },
 };

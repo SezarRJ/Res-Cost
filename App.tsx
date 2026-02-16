@@ -29,25 +29,37 @@ import Reports from './pages/Reports';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminRestaurants from './pages/admin/AdminRestaurants';
+import AdminSubscriptions from './pages/admin/AdminSubscriptions';
+import AdminBilling from './pages/admin/AdminBilling';
+import AdminUsage from './pages/admin/AdminUsage';
 import AdminAI from './pages/admin/AdminAI';
+import AdminImports from './pages/admin/AdminImports';
 import AdminAudit from './pages/admin/AdminAudit';
+import AdminSupport from './pages/admin/AdminSupport';
+import AdminContent from './pages/admin/AdminContent';
 import AdminSettings from './pages/admin/AdminSettings';
+import AdminAnnouncements from './pages/admin/AdminAnnouncements';
+import AdminIntegrations from './pages/admin/AdminIntegrations';
 
 import { AIChatPanel } from './components/AIChatPanel';
 import { UserProfile, UserRole, SubscriptionPlan, SubscriptionStatus, Ingredient, OperatingCost, Currency, Recipe } from './types';
 import { Sparkles, ShieldCheck } from 'lucide-react';
 
 const MOCK_USER: UserProfile = {
-  id: 'user-admin',
+  id: 'user-admin-01',
   fullName: 'مدير النظام',
+  email: 'demo@example.com',
   role: UserRole.ADMIN,
   plan: SubscriptionPlan.ELITE,
   restaurantId: 'rest-admin',
-  restaurantName: 'التحكم المركزي',
+  restaurantName: 'MenuProfit HQ',
   address: 'بغداد، المنصور',
   locationLink: '',
   baselineMonthlyPlates: 0,
   targetMarginPercent: 60,
+  status: 'active',
+  createdAt: '2024-01-01',
+  lastLogin: '2024-06-15',
   subscription: {
     plan: SubscriptionPlan.ELITE,
     status: SubscriptionStatus.ACTIVE,
@@ -83,7 +95,6 @@ const App: React.FC = () => {
   const [costs, setCosts] = useState<OperatingCost[]>(INITIAL_COSTS);
   const [recipes, setRecipes] = useState<Recipe[]>(INITIAL_RECIPES);
 
-  // Derived Values
   const monthlyOverhead = useMemo(() => {
     return costs.reduce((sum, c) => sum + (c.frequency === 'monthly' ? c.amount : c.amount / 12), 0);
   }, [costs]);
@@ -101,7 +112,6 @@ const App: React.FC = () => {
   const handleLogin = () => {
     localStorage.setItem('mp_session', 'active');
     setIsLoggedIn(true);
-    // If admin, go to admin dashboard, else go to normal dashboard
     if (userProfile.role === UserRole.ADMIN) {
       handleNavigate('admin/dashboard');
     } else {
@@ -129,15 +139,17 @@ const App: React.FC = () => {
       if (!hash) hash = 'landing';
       
       const appPaths = ['dashboard', 'ingredients', 'recipes', 'pricing-recs', 'sales-import', 'ai-hub', 'account', 'offers', 'costs', 'billing', 'reports'];
-      const adminPaths = ['admin/dashboard', 'admin/users', 'admin/restaurants', 'admin/subscriptions', 'admin/ai', 'admin/audit', 'admin/announcements', 'admin/settings'];
-      const authPaths = ['login', 'register', 'setup'];
+      const adminPaths = [
+        'admin/dashboard', 'admin/users', 'admin/restaurants', 'admin/subscriptions', 
+        'admin/billing', 'admin/usage', 'admin/ai', 'admin/imports', 'admin/integrations',
+        'admin/audit', 'admin/support', 'admin/content', 'admin/settings', 'admin/announcements'
+      ];
       
       const isTryingToAccessApp = appPaths.some(p => hash.startsWith(p));
       const isTryingToAccessAdmin = adminPaths.some(p => hash.startsWith(p));
       const hasSession = localStorage.getItem('mp_session') === 'active';
       const setupComplete = localStorage.getItem('mp_setup_complete') === 'true';
 
-      // Security checks
       if ((isTryingToAccessApp || isTryingToAccessAdmin) && !hasSession) {
         handleNavigate('login');
         return;
@@ -162,30 +174,22 @@ const App: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, [userProfile.role]);
 
-  const renderPublicPage = () => {
-    switch (activePath) {
-      case 'landing': return <Landing onGetStarted={() => handleNavigate('register')} />;
-      case 'pricing': return <PublicPricing onSelectPlan={() => handleNavigate('register')} />;
-      case 'features': return <PublicFeatures />;
-      case 'contact': return <PublicContact />;
-      case 'terms': return <PublicLegal type="terms" />;
-      case 'privacy': return <PublicLegal type="privacy" />;
-      case 'login': return <Login onLogin={handleLogin} />;
-      case 'register': return <Register onRegister={() => handleNavigate('setup')} />;
-      case 'setup': return <Setup onComplete={handleSetupComplete} />;
-      default: return <Landing onGetStarted={() => handleNavigate('register')} />;
-    }
-  };
-
   const renderAppPage = () => {
-    // Admin Routes
+    // Admin Routes Mapping
     if (activePath === 'admin/dashboard') return <AdminDashboard />;
     if (activePath === 'admin/users') return <AdminUsers />;
     if (activePath === 'admin/restaurants') return <AdminRestaurants />;
+    if (activePath === 'admin/subscriptions') return <AdminSubscriptions />;
+    if (activePath === 'admin/billing') return <AdminBilling />;
+    if (activePath === 'admin/usage') return <AdminUsage />;
     if (activePath === 'admin/ai') return <AdminAI />;
+    if (activePath === 'admin/integrations') return <AdminIntegrations />;
+    if (activePath === 'admin/imports') return <AdminImports />;
     if (activePath === 'admin/audit') return <AdminAudit />;
+    if (activePath === 'admin/support') return <AdminSupport />;
+    if (activePath === 'admin/content') return <AdminContent />;
     if (activePath === 'admin/settings') return <AdminSettings />;
-    if (activePath === 'admin/announcements') return <AdminSettings />; // Shares view for now
+    if (activePath === 'admin/announcements') return <AdminAnnouncements />;
 
     // Standard Routes
     if (activePath === 'recipes/new') {
@@ -238,27 +242,26 @@ const App: React.FC = () => {
     }
   };
 
-  const authPaths = ['login', 'register', 'setup'];
   const isAdminPath = activePath.startsWith('admin/');
-  const isInsideApp = activePath.startsWith('dashboard') || 
-                      activePath.startsWith('ingredients') || 
-                      activePath.startsWith('recipes') || 
-                      activePath.startsWith('pricing-recs') || 
-                      activePath.startsWith('sales-import') || 
-                      activePath.startsWith('ai-hub') || 
-                      activePath.startsWith('account') || 
-                      activePath.startsWith('offers') || 
-                      activePath.startsWith('costs') || 
-                      activePath.startsWith('billing') || 
-                      activePath.startsWith('reports') ||
-                      isAdminPath;
+  const isInsideApp = !['landing', 'pricing', 'features', 'contact', 'terms', 'privacy', 'login', 'register', 'setup'].includes(activePath);
 
   if (!isLoggedIn || !isInsideApp) {
-    if (authPaths.includes(activePath)) return <div className="min-h-screen bg-slate-50">{renderPublicPage()}</div>;
+    const authPaths = ['login', 'register', 'setup'];
+    if (authPaths.includes(activePath)) return <div className="min-h-screen bg-slate-50">{
+      activePath === 'login' ? <Login onLogin={handleLogin} /> :
+      activePath === 'register' ? <Register onRegister={() => handleNavigate('setup')} /> :
+      <Setup onComplete={handleSetupComplete} />
+    }</div>;
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col">
         <PublicNav activePath={activePath} onNavigate={handleNavigate} />
-        <main className="flex-1">{renderPublicPage()}</main>
+        <main className="flex-1">
+          {activePath === 'landing' && <Landing onGetStarted={() => handleNavigate('register')} />}
+          {activePath === 'pricing' && <PublicPricing onSelectPlan={() => handleNavigate('register')} />}
+          {activePath === 'features' && <PublicFeatures />}
+          {activePath === 'contact' && <PublicContact />}
+          {(activePath === 'terms' || activePath === 'privacy') && <PublicLegal type={activePath as any} />}
+        </main>
         <PublicFooter onNavigate={handleNavigate} />
       </div>
     );
@@ -275,7 +278,6 @@ const App: React.FC = () => {
         {renderAppPage()}
       </Layout>
 
-      {/* Admin Quick Switch (For Demo Only) */}
       {userProfile.role === UserRole.ADMIN && (
         <div className="fixed bottom-24 left-8 z-[100] flex flex-col gap-2">
            <button 

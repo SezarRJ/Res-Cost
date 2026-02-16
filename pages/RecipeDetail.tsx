@@ -75,6 +75,13 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
   const currentMargin = calculateMargin(editedRecipe.sellingPrice);
 
   const handleSave = () => {
+    if (costingSuggestions.length > 0) {
+      const confirmSave = window.confirm(`يوجد ${costingSuggestions.length} اقتراحات من الذكاء الاصطناعي لم تقم بمراجعتها بعد. هل أنت متأكد من رغبتك في الحفظ دون تطبيق التحسينات؟`);
+      if (!confirmSave) {
+        setActiveTab('ai');
+        return;
+      }
+    }
     onUpdate(editedRecipe);
     alert('تم حفظ التعديلات بنجاح!');
   };
@@ -163,13 +170,25 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
              {isAiLoading ? <Loader2 size={18} className="animate-spin text-blue-600" /> : <Zap size={18} className="text-amber-500 group-hover:scale-125 transition-transform" />}
              تحسين التكاليف AI
            </button>
-           <button 
-             onClick={handleSave}
-             className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-blue-600/20 hover:bg-blue-700 transition-all flex items-center gap-3 active:scale-95"
-           >
-             <Save size={18} />
-             حفظ الوصفة
-           </button>
+           
+           <div className="relative group">
+              {costingSuggestions.length > 0 && (
+                <div className="absolute -top-3 -right-3 z-10 bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg animate-bounce border-2 border-white">
+                  {costingSuggestions.length} اقتراحات معلقة
+                </div>
+              )}
+              <button 
+                onClick={handleSave}
+                className={`px-10 py-4 rounded-2xl font-black text-sm shadow-xl transition-all flex items-center gap-3 active:scale-95 ${
+                  costingSuggestions.length > 0 
+                  ? 'bg-amber-600 text-white shadow-amber-600/30 ring-4 ring-amber-100 animate-pulse' 
+                  : 'bg-blue-600 text-white shadow-blue-600/20 hover:bg-blue-700'
+                }`}
+              >
+                <Save size={18} />
+                {costingSuggestions.length > 0 ? 'مراجعة وحفظ الوصفة' : 'حفظ الوصفة'}
+              </button>
+           </div>
         </div>
       </div>
 
@@ -179,19 +198,20 @@ const RecipeDetail: React.FC<RecipeDetailProps> = ({
           { id: 'costs', label: 'التكاليف', icon: <Calculator size={16} /> },
           { id: 'competitors', label: 'المنافسين', icon: <Users size={16} /> },
           { id: 'pricing', label: 'التسعير', icon: <DollarSign size={16} /> },
-          { id: 'ai', label: 'تحسين AI', icon: <Sparkles size={16} />, elite: true },
+          { id: 'ai', label: 'تحسين AI', icon: <Sparkles size={16} />, elite: true, hasAlert: costingSuggestions.length > 0 },
         ].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
             className={`
-              flex items-center gap-2 px-8 py-3 rounded-2xl text-xs font-black transition-all
+              flex items-center gap-2 px-8 py-3 rounded-2xl text-xs font-black transition-all relative
               ${activeTab === tab.id ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}
             `}
           >
             {tab.icon}
             {tab.label}
             {tab.elite && <span className="bg-amber-100 text-amber-600 text-[8px] px-1.5 py-0.5 rounded-full mr-1">Elite</span>}
+            {tab.hasAlert && <span className="absolute -top-1 -left-1 w-3 h-3 bg-amber-500 border-2 border-white rounded-full"></span>}
           </button>
         ))}
       </div>
