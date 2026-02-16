@@ -113,3 +113,30 @@ export interface AIPriceRecommendation {
   aggressive: number;
   reasoning: string;
 }
+
+// Admin Specific Types
+export interface AuditLog {
+  id: string;
+  timestamp: string;
+  actorName: string;
+  action: string;
+  entityType: string;
+  entityName: string;
+  metadata: any;
+}
+
+export interface AIUsageLog {
+  id: string;
+  restaurantName: string;
+  feature: string;
+  tokens: number;
+  cost: number;
+  timestamp: string;
+}
+
+export interface SystemConfig {
+  maintenanceMode: boolean;
+  globalAnnouncement: string;
+  aiFeaturesEnabled: boolean;
+  eliteTrialDays: number;
+}

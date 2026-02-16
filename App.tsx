@@ -24,34 +24,36 @@ import AIHub from './pages/AIHub';
 import Account from './pages/Account';
 import OffersRules from './pages/OffersRules';
 import Reports from './pages/Reports';
+
+// Admin Pages
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminRestaurants from './pages/admin/AdminRestaurants';
+import AdminAI from './pages/admin/AdminAI';
+import AdminAudit from './pages/admin/AdminAudit';
+import AdminSettings from './pages/admin/AdminSettings';
+
 import { AIChatPanel } from './components/AIChatPanel';
 import { UserProfile, UserRole, SubscriptionPlan, SubscriptionStatus, Ingredient, OperatingCost, Currency, Recipe } from './types';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, ShieldCheck } from 'lucide-react';
 
 const MOCK_USER: UserProfile = {
-  id: 'user-1',
-  fullName: 'أحمد العراقي',
-  role: UserRole.OWNER,
+  id: 'user-admin',
+  fullName: 'مدير النظام',
+  role: UserRole.ADMIN,
   plan: SubscriptionPlan.ELITE,
-  restaurantId: 'rest-1',
-  restaurantName: 'برجر هاوس - أربيل',
-  address: 'شارع 100، بالقرب من قلعة أربيل، أربيل، العراق',
-  locationLink: 'https://maps.google.com/?q=36.1912,44.0091',
-  baselineMonthlyPlates: 1500,
+  restaurantId: 'rest-admin',
+  restaurantName: 'التحكم المركزي',
+  address: 'بغداد، المنصور',
+  locationLink: '',
+  baselineMonthlyPlates: 0,
   targetMarginPercent: 60,
   subscription: {
     plan: SubscriptionPlan.ELITE,
     status: SubscriptionStatus.ACTIVE,
-    renewalDate: '2024-06-15',
-    paymentMethod: {
-      brand: 'Visa',
-      last4: '4242'
-    },
-    invoices: [
-      { id: 'inv_1', date: '2024-05-15', amount: 85000, status: 'paid', pdfUrl: '#' },
-      { id: 'inv_2', date: '2024-04-15', amount: 85000, status: 'paid', pdfUrl: '#' },
-      { id: 'inv_3', date: '2024-03-15', amount: 45000, status: 'paid', pdfUrl: '#' },
-    ]
+    renewalDate: '2099-01-01',
+    paymentMethod: { brand: 'MasterCard', last4: '8888' },
+    invoices: []
   }
 };
 
@@ -99,7 +101,12 @@ const App: React.FC = () => {
   const handleLogin = () => {
     localStorage.setItem('mp_session', 'active');
     setIsLoggedIn(true);
-    handleNavigate('dashboard');
+    // If admin, go to admin dashboard, else go to normal dashboard
+    if (userProfile.role === UserRole.ADMIN) {
+      handleNavigate('admin/dashboard');
+    } else {
+      handleNavigate('dashboard');
+    }
   };
 
   const handleLogout = () => {
@@ -122,27 +129,27 @@ const App: React.FC = () => {
       if (!hash) hash = 'landing';
       
       const appPaths = ['dashboard', 'ingredients', 'recipes', 'pricing-recs', 'sales-import', 'ai-hub', 'account', 'offers', 'costs', 'billing', 'reports'];
+      const adminPaths = ['admin/dashboard', 'admin/users', 'admin/restaurants', 'admin/subscriptions', 'admin/ai', 'admin/audit', 'admin/announcements', 'admin/settings'];
       const authPaths = ['login', 'register', 'setup'];
       
       const isTryingToAccessApp = appPaths.some(p => hash.startsWith(p));
+      const isTryingToAccessAdmin = adminPaths.some(p => hash.startsWith(p));
       const hasSession = localStorage.getItem('mp_session') === 'active';
       const setupComplete = localStorage.getItem('mp_setup_complete') === 'true';
 
-      // Security check
-      if (isTryingToAccessApp && !hasSession) {
+      // Security checks
+      if ((isTryingToAccessApp || isTryingToAccessAdmin) && !hasSession) {
         handleNavigate('login');
         return;
       }
 
-      // If logged in but setup not complete, force setup
-      if (hasSession && !setupComplete && hash !== 'setup') {
-        handleNavigate('setup');
+      if (isTryingToAccessAdmin && userProfile.role !== UserRole.ADMIN) {
+        handleNavigate('dashboard');
         return;
       }
 
-      // If setup complete, don't allow access to setup page
-      if (setupComplete && hash === 'setup') {
-        handleNavigate('dashboard');
+      if (hasSession && !setupComplete && !isTryingToAccessAdmin && hash !== 'setup' && userProfile.role !== UserRole.ADMIN) {
+        handleNavigate('setup');
         return;
       }
 
@@ -153,7 +160,7 @@ const App: React.FC = () => {
     window.addEventListener('hashchange', handleHashChange);
     handleHashChange();
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+  }, [userProfile.role]);
 
   const renderPublicPage = () => {
     switch (activePath) {
@@ -171,6 +178,16 @@ const App: React.FC = () => {
   };
 
   const renderAppPage = () => {
+    // Admin Routes
+    if (activePath === 'admin/dashboard') return <AdminDashboard />;
+    if (activePath === 'admin/users') return <AdminUsers />;
+    if (activePath === 'admin/restaurants') return <AdminRestaurants />;
+    if (activePath === 'admin/ai') return <AdminAI />;
+    if (activePath === 'admin/audit') return <AdminAudit />;
+    if (activePath === 'admin/settings') return <AdminSettings />;
+    if (activePath === 'admin/announcements') return <AdminSettings />; // Shares view for now
+
+    // Standard Routes
     if (activePath === 'recipes/new') {
       return (
         <RecipeNew 
@@ -222,8 +239,19 @@ const App: React.FC = () => {
   };
 
   const authPaths = ['login', 'register', 'setup'];
-  const appPaths = ['dashboard', 'ingredients', 'recipes', 'pricing-recs', 'sales-import', 'ai-hub', 'account', 'offers', 'costs', 'billing', 'reports'];
-  const isInsideApp = appPaths.some(p => activePath.startsWith(p));
+  const isAdminPath = activePath.startsWith('admin/');
+  const isInsideApp = activePath.startsWith('dashboard') || 
+                      activePath.startsWith('ingredients') || 
+                      activePath.startsWith('recipes') || 
+                      activePath.startsWith('pricing-recs') || 
+                      activePath.startsWith('sales-import') || 
+                      activePath.startsWith('ai-hub') || 
+                      activePath.startsWith('account') || 
+                      activePath.startsWith('offers') || 
+                      activePath.startsWith('costs') || 
+                      activePath.startsWith('billing') || 
+                      activePath.startsWith('reports') ||
+                      isAdminPath;
 
   if (!isLoggedIn || !isInsideApp) {
     if (authPaths.includes(activePath)) return <div className="min-h-screen bg-slate-50">{renderPublicPage()}</div>;
@@ -247,12 +275,27 @@ const App: React.FC = () => {
         {renderAppPage()}
       </Layout>
 
-      <button 
-        onClick={() => setIsAiPanelOpen(true)}
-        className="fixed bottom-8 left-8 z-50 w-16 h-16 bg-blue-600 text-white rounded-2xl shadow-2xl flex items-center justify-center hover:bg-blue-700 hover:scale-110 active:scale-95 transition-all duration-300 group"
-      >
-        <Sparkles size={28} />
-      </button>
+      {/* Admin Quick Switch (For Demo Only) */}
+      {userProfile.role === UserRole.ADMIN && (
+        <div className="fixed bottom-24 left-8 z-[100] flex flex-col gap-2">
+           <button 
+             onClick={() => handleNavigate(isAdminPath ? 'dashboard' : 'admin/dashboard')}
+             className="w-16 h-16 bg-slate-900 text-white rounded-2xl shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all group"
+             title={isAdminPath ? "العودة للوحة صاحب المطعم" : "الدخول للوحة الإدارة"}
+           >
+              {isAdminPath ? <Sparkles size={24} /> : <ShieldCheck size={24} />}
+           </button>
+        </div>
+      )}
+
+      {!isAdminPath && (
+        <button 
+          onClick={() => setIsAiPanelOpen(true)}
+          className="fixed bottom-8 left-8 z-50 w-16 h-16 bg-blue-600 text-white rounded-2xl shadow-2xl flex items-center justify-center hover:bg-blue-700 hover:scale-110 active:scale-95 transition-all duration-300 group"
+        >
+          <Sparkles size={28} />
+        </button>
+      )}
 
       <AIChatPanel isOpen={isAiPanelOpen} onClose={() => setIsAiPanelOpen(false)} />
     </>
