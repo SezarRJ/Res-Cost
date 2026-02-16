@@ -1,23 +1,48 @@
 
 import React, { useState } from 'react';
-import { Search, Plus, Filter, MoreVertical, Edit2, Trash2, ArrowUpDown, ShoppingCart, Package, TrendingDown, ArrowUpRight, ChevronLeft } from 'lucide-react';
+import { Search, Plus, Filter, Edit2, Trash2, ArrowUpDown, ShoppingCart, Package, TrendingDown, ArrowUpRight, ChevronLeft, X } from 'lucide-react';
 import { Ingredient, Currency } from '../types';
 
-const INITIAL_INGREDIENTS: Ingredient[] = [
-  { id: '1', name: 'طحين فاخر (تركي)', unit: 'كغم', pricePerUnit: 1250, currency: Currency.IQD, category: 'مخزن' },
-  { id: '2', name: 'زيت نباتي صني', unit: 'لتر', pricePerUnit: 2500, currency: Currency.IQD, category: 'مخزن' },
-  { id: '3', name: 'لحم بقري مفروم (محلي)', unit: 'كغم', pricePerUnit: 14000, currency: Currency.IQD, category: 'بروتين' },
-  { id: '4', name: 'جبن موزاريلا المراعي', unit: 'كغم', pricePerUnit: 9500, currency: Currency.IQD, category: 'ألبان' },
-  { id: '5', name: 'طماطم طازجة', unit: 'كغم', pricePerUnit: 750, currency: Currency.IQD, category: 'خضروات' },
-];
+interface IngredientsProps {
+  ingredients: Ingredient[];
+  setIngredients: React.Dispatch<React.SetStateAction<Ingredient[]>>;
+}
 
-const Ingredients: React.FC = () => {
-  const [ingredients, setIngredients] = useState<Ingredient[]>(INITIAL_INGREDIENTS);
+const Ingredients: React.FC<IngredientsProps> = ({ ingredients, setIngredients }) => {
   const [search, setSearch] = useState('');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newIngredient, setNewIngredient] = useState<Partial<Ingredient>>({
+    name: '',
+    unit: 'كغم',
+    pricePerUnit: 0,
+    currency: Currency.IQD,
+    category: 'مخزن'
+  });
 
   const filtered = ingredients.filter(i => 
     i.name.includes(search) || (i.category && i.category.includes(search))
   );
+
+  const handleAdd = () => {
+    if (!newIngredient.name || !newIngredient.pricePerUnit) return;
+    const item: Ingredient = {
+      id: Date.now().toString(),
+      name: newIngredient.name!,
+      unit: newIngredient.unit!,
+      pricePerUnit: Number(newIngredient.pricePerUnit),
+      currency: newIngredient.currency!,
+      category: newIngredient.category
+    };
+    setIngredients([item, ...ingredients]);
+    setIsAddModalOpen(false);
+    setNewIngredient({ name: '', unit: 'كغم', pricePerUnit: 0, currency: Currency.IQD, category: 'مخزن' });
+  };
+
+  const handleDelete = (id: string) => {
+    if (window.confirm('هل أنت متأكد من حذف هذه المادة؟')) {
+      setIngredients(ingredients.filter(i => i.id !== id));
+    }
+  };
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -32,7 +57,10 @@ const Ingredients: React.FC = () => {
              <Package size={20} className="text-blue-500" />
              استيراد من Excel
            </button>
-           <button className="flex items-center gap-3 bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-sm shadow-2xl shadow-blue-600/30 hover:bg-blue-700 transition-all active:scale-95">
+           <button 
+             onClick={() => setIsAddModalOpen(true)}
+             className="flex items-center gap-3 bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-sm shadow-2xl shadow-blue-600/30 hover:bg-blue-700 transition-all active:scale-95"
+           >
              <Plus size={20} />
              إضافة مادة جديدة
            </button>
@@ -42,8 +70,8 @@ const Ingredients: React.FC = () => {
       {/* Analytics Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
          {[
-           { label: 'إجمالي المواد', value: '42', sub: 'مواد مسجلة', icon: <ShoppingCart size={20} />, color: 'blue' },
-           { label: 'أعلى تكلفة (بروتين)', value: '14,000', sub: 'د.ع / كغم', icon: <TrendingDown size={20} />, color: 'rose' },
+           { label: 'إجمالي المواد', value: ingredients.length.toString(), sub: 'مواد مسجلة', icon: <ShoppingCart size={20} />, color: 'blue' },
+           { label: 'أعلى تكلفة', value: Math.max(...ingredients.map(i => i.pricePerUnit)).toLocaleString(), sub: 'د.ع / وحدة', icon: <TrendingDown size={20} />, color: 'rose' },
            { label: 'معدل تقلب الأسعار', value: '3.2%', sub: 'آخر 30 يوم', icon: <ArrowUpRight size={20} />, color: 'emerald' },
          ].map((stat, i) => (
            <div key={i} className="glass-card p-6 rounded-[2rem] border border-white flex items-center gap-6 group hover:shadow-xl transition-all">
@@ -74,16 +102,6 @@ const Ingredients: React.FC = () => {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-6 py-4 bg-white border border-slate-100 rounded-2xl text-xs font-black text-slate-500 hover:bg-slate-50 transition-all uppercase tracking-widest">
-              <Filter size={18} />
-              الفئات
-            </button>
-            <button className="flex items-center gap-2 px-6 py-4 bg-white border border-slate-100 rounded-2xl text-xs font-black text-slate-500 hover:bg-slate-50 transition-all uppercase tracking-widest">
-              <ArrowUpDown size={18} />
-              السعر
-            </button>
-          </div>
         </div>
 
         {/* List View */}
@@ -110,17 +128,16 @@ const Ingredients: React.FC = () => {
                          <span className="text-2xl font-black text-slate-800">{item.pricePerUnit.toLocaleString()}</span>
                          <span className="text-[10px] text-slate-400 font-black uppercase">{item.currency}</span>
                       </div>
-                      <span className="text-[9px] text-emerald-500 font-black uppercase tracking-widest flex items-center gap-1">
-                         <ArrowUpRight size={10} /> 
-                         Market Avg: 1,400
-                      </span>
                    </div>
                    
                    <div className="flex items-center gap-2 border-r border-slate-100 pr-6">
                       <button className="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-400 hover:bg-blue-600 hover:text-white rounded-xl transition-all shadow-sm">
                         <Edit2 size={16} />
                       </button>
-                      <button className="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-400 hover:bg-rose-600 hover:text-white rounded-xl transition-all shadow-sm">
+                      <button 
+                        onClick={() => handleDelete(item.id)}
+                        className="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-400 hover:bg-rose-600 hover:text-white rounded-xl transition-all shadow-sm"
+                      >
                         <Trash2 size={16} />
                       </button>
                    </div>
@@ -139,19 +156,68 @@ const Ingredients: React.FC = () => {
             </div>
           )}
         </div>
+      </div>
 
-        <div className="p-8 border-t border-slate-50 flex items-center justify-between">
-           <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Page 1 of 4 • 10 Results per page</span>
-           <div className="flex gap-4">
-              <button className="w-12 h-12 bg-white border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-50 transition-all shadow-sm">
-                <ChevronLeft size={20} className="rotate-180" />
-              </button>
-              <button className="w-12 h-12 bg-white border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-50 transition-all shadow-sm">
-                <ChevronLeft size={20} />
-              </button>
+      {/* Add Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+           <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-white p-10 space-y-8 relative overflow-hidden">
+              <div className="flex justify-between items-center">
+                 <h3 className="text-2xl font-black text-slate-800">إضافة مادة جديدة</h3>
+                 <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                    <X size={24} />
+                 </button>
+              </div>
+              
+              <div className="space-y-6">
+                 <div className="space-y-2">
+                    <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest mr-2">اسم المادة</label>
+                    <input 
+                      type="text" 
+                      value={newIngredient.name}
+                      onChange={(e) => setNewIngredient({...newIngredient, name: e.target.value})}
+                      className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold focus:ring-4 focus:ring-blue-100 outline-none" 
+                    />
+                 </div>
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                       <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest mr-2">الوحدة</label>
+                       <input 
+                        type="text" 
+                        value={newIngredient.unit}
+                        onChange={(e) => setNewIngredient({...newIngredient, unit: e.target.value})}
+                        className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold focus:ring-4 focus:ring-blue-100 outline-none" 
+                       />
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest mr-2">السعر</label>
+                       <input 
+                        type="number" 
+                        value={newIngredient.pricePerUnit}
+                        onChange={(e) => setNewIngredient({...newIngredient, pricePerUnit: Number(e.target.value)})}
+                        className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold focus:ring-4 focus:ring-blue-100 outline-none" 
+                       />
+                    </div>
+                 </div>
+              </div>
+              
+              <div className="flex gap-4 pt-4">
+                 <button 
+                   onClick={() => setIsAddModalOpen(false)}
+                   className="flex-1 py-4 bg-slate-50 text-slate-500 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-100 transition-all"
+                 >
+                   إلغاء
+                 </button>
+                 <button 
+                   onClick={handleAdd}
+                   className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20"
+                 >
+                   حفظ المادة
+                 </button>
+              </div>
            </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

@@ -22,32 +22,33 @@ export const getAIPriceGuidance = async (
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `بصفتك خبير في تسعير المطاعم في العراق، اقترح 3 خيارات سعرية لطبق "${dishName}" تكلفت الهامش المستهدف هو ${targetMargin}%. تكلفة الطبق هي ${cost} ${currency}.`,
+      contents: `بصفتك خبير في تسعير المطاعم، اقترح 3 خيارات سعرية لطبق "${dishName}". تكلفة الطبق الإجمالية هي ${cost} ${currency} والهامش المستهدف هو ${targetMargin}%.
+      قم بتوفير خيار محافظ (Conservative)، متوازن (Balanced)، وهجومي (Aggressive).
+      اشرح السبب لكل خيار وتأثيره المتوقع على جذب الزبائن في السوق المحلي.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            conservative: { type: Type.NUMBER, description: 'Conservative price' },
-            balanced: { type: Type.NUMBER, description: 'Balanced price' },
-            aggressive: { type: Type.NUMBER, description: 'Aggressive price' },
-            reasoning: { type: Type.STRING, description: 'Reasoning in Arabic' },
+            conservative: { type: Type.NUMBER, description: 'Slightly lower price for high volume' },
+            balanced: { type: Type.NUMBER, description: 'The ideal price to hit target margin' },
+            aggressive: { type: Type.NUMBER, description: 'Premium pricing for high perceived value' },
+            reasoning: { type: Type.STRING, description: 'Detailed reasoning for the balanced choice in Arabic' },
           },
           required: ["conservative", "balanced", "aggressive", "reasoning"],
         },
       },
     });
 
-    // Access the text property directly from the response.
     return JSON.parse(response.text || '{}');
   } catch (error) {
     console.error("AI Price Guidance Error:", error);
     const base = cost / (1 - targetMargin / 100);
     return {
-      conservative: Math.ceil(base * 0.95 / 250) * 250,
+      conservative: Math.ceil(base * 0.92 / 250) * 250,
       balanced: Math.ceil(base / 250) * 250,
-      aggressive: Math.ceil(base * 1.1 / 250) * 250,
-      reasoning: "تم حساب السعر بناءً على الهامش المستهدف تلقائياً (فشل في استدعاء الذكاء الاصطناعي)."
+      aggressive: Math.ceil(base * 1.15 / 250) * 250,
+      reasoning: "تم حساب السعر بناءً على الهامش المستهدف تلقائياً كإجراء احتياطي."
     };
   }
 };
@@ -59,7 +60,10 @@ export const getAIRecipeAssistantSuggestions = async (
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `بصفتك مساعد مطبخ ذكي، قم بمراجعة مكونات وصفة "${dishName}". اقترح تصحيحات للكميات أو الوحدات المفقودة أو غير المنطقية. المكونات الحالية: ${JSON.stringify(ingredients)}. ركز على المقادير القياسية للمطاعم في الشرق الأوسط. إذا كانت الكمية 0 أو الوحدة فارغة، استنتج القيمة المنطقية لهذا الطبق.`,
+      contents: `بصفتك مساعد مطبخ ذكي، راجع مكونات وصفة "${dishName}". 
+      حدد المكونات التي قد تحتاج لتعديل في الكمية أو الوحدة لتكون مطابقة لمعايير المطاعم الاحترافية. 
+      المكونات: ${JSON.stringify(ingredients)}. 
+      إذا كانت الكمية 0، اقترح كمية منطقية بناءً على الوصفة التقليدية للطبق.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -71,7 +75,7 @@ export const getAIRecipeAssistantSuggestions = async (
               originalName: { type: Type.STRING },
               suggestedQuantity: { type: Type.NUMBER },
               suggestedUnit: { type: Type.STRING },
-              reason: { type: Type.STRING, description: 'Reasoning in Arabic' },
+              reason: { type: Type.STRING, description: 'Reason for modification in Arabic' },
             },
             required: ["ingredientIndex", "originalName", "suggestedQuantity", "suggestedUnit", "reason"],
           }
@@ -79,7 +83,6 @@ export const getAIRecipeAssistantSuggestions = async (
       },
     });
 
-    // Access the text property directly from the response.
     const text = response.text || '[]';
     return JSON.parse(text);
   } catch (error) {

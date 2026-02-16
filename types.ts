@@ -11,6 +11,14 @@ export enum SubscriptionPlan {
   ELITE = 'ELITE'
 }
 
+export enum SubscriptionStatus {
+  ACTIVE = 'active',
+  TRIALING = 'trialing',
+  PAST_DUE = 'past_due',
+  CANCELED = 'canceled',
+  INCOMPLETE = 'incomplete'
+}
+
 export enum Currency {
   IQD = 'IQD',
   USD = 'USD'
@@ -31,13 +39,22 @@ export interface RecipeIngredient {
   cost: number;
 }
 
+export interface CompetitorPrice {
+  id: string;
+  name: string;
+  price: number;
+  updatedAt: Date;
+}
+
 export interface Recipe {
   id: string;
   name: string;
   ingredients: RecipeIngredient[];
   sellingPrice: number;
+  currency: Currency;
   category?: string;
   description?: string;
+  competitors: CompetitorPrice[];
 }
 
 export interface OperatingCost {
@@ -47,21 +64,47 @@ export interface OperatingCost {
   frequency: 'monthly' | 'yearly';
 }
 
-export interface Restaurant {
+export interface Invoice {
+  id: string;
+  date: string;
+  amount: number;
+  status: 'paid' | 'pending' | 'failed';
+  pdfUrl: string;
+}
+
+export interface VolumeDiscountRule {
   id: string;
   name: string;
-  city: string;
-  currency: Currency;
-  targetMarginPercent: number;
-  baselineMonthlyPlates: number;
+  threshold: number;
+  discountPercent: number;
+  minMarginPercent: number;
+  isActive: boolean;
+}
+
+export interface SubscriptionDetails {
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
+  renewalDate: string;
+  paymentMethod: {
+    brand: string;
+    last4: string;
+  };
+  invoices: Invoice[];
 }
 
 export interface UserProfile {
   id: string;
   fullName: string;
+  phone?: string;
   role: UserRole;
   plan: SubscriptionPlan;
   restaurantId: string;
+  restaurantName: string;
+  address: string;
+  locationLink: string;
+  baselineMonthlyPlates: number;
+  targetMarginPercent: number;
+  subscription?: SubscriptionDetails;
 }
 
 export interface AIPriceRecommendation {

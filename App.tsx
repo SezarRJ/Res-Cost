@@ -1,77 +1,257 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Layout from './components/Layout';
+import PublicNav from './components/PublicNav';
+import PublicFooter from './components/PublicFooter';
+import Landing from './pages/Landing';
+import PublicPricing from './pages/PublicPricing';
+import PublicFeatures from './pages/PublicFeatures';
+import PublicContact from './pages/PublicContact';
+import PublicLegal from './pages/PublicLegal';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Setup from './pages/Setup';
 import Dashboard from './pages/Dashboard';
 import Ingredients from './pages/Ingredients';
 import Recipes from './pages/Recipes';
+import RecipeNew from './pages/RecipeNew';
 import RecipeDetail from './pages/RecipeDetail';
 import OperatingCosts from './pages/OperatingCosts';
 import Billing from './pages/Billing';
 import PricingRecommendations from './pages/PricingRecommendations';
+import SalesImport from './pages/SalesImport';
+import AIHub from './pages/AIHub';
+import Account from './pages/Account';
+import OffersRules from './pages/OffersRules';
+import Reports from './pages/Reports';
 import { AIChatPanel } from './components/AIChatPanel';
-import { UserProfile, UserRole, SubscriptionPlan } from './types';
+import { UserProfile, UserRole, SubscriptionPlan, SubscriptionStatus, Ingredient, OperatingCost, Currency, Recipe } from './types';
 import { Sparkles } from 'lucide-react';
 
 const MOCK_USER: UserProfile = {
   id: 'user-1',
   fullName: 'أحمد العراقي',
   role: UserRole.OWNER,
-  plan: SubscriptionPlan.ELITE, // Changed to ELITE to see pricing-recs
-  restaurantId: 'rest-1'
+  plan: SubscriptionPlan.ELITE,
+  restaurantId: 'rest-1',
+  restaurantName: 'برجر هاوس - أربيل',
+  address: 'شارع 100، بالقرب من قلعة أربيل، أربيل، العراق',
+  locationLink: 'https://maps.google.com/?q=36.1912,44.0091',
+  baselineMonthlyPlates: 1500,
+  targetMarginPercent: 60,
+  subscription: {
+    plan: SubscriptionPlan.ELITE,
+    status: SubscriptionStatus.ACTIVE,
+    renewalDate: '2024-06-15',
+    paymentMethod: {
+      brand: 'Visa',
+      last4: '4242'
+    },
+    invoices: [
+      { id: 'inv_1', date: '2024-05-15', amount: 85000, status: 'paid', pdfUrl: '#' },
+      { id: 'inv_2', date: '2024-04-15', amount: 85000, status: 'paid', pdfUrl: '#' },
+      { id: 'inv_3', date: '2024-03-15', amount: 45000, status: 'paid', pdfUrl: '#' },
+    ]
+  }
 };
 
+const INITIAL_INGREDIENTS: Ingredient[] = [
+  { id: '1', name: 'طحين فاخر (تركي)', unit: 'كغم', pricePerUnit: 1250, currency: Currency.IQD, category: 'مخزن' },
+  { id: '2', name: 'زيت نباتي صني', unit: 'لتر', pricePerUnit: 2500, currency: Currency.IQD, category: 'مخزن' },
+  { id: '3', name: 'لحم بقري مفروم (محلي)', unit: 'كغم', pricePerUnit: 14000, currency: Currency.IQD, category: 'بروتين' },
+];
+
+const INITIAL_COSTS: OperatingCost[] = [
+  { id: '1', name: 'إيجار المحل', amount: 2000000, frequency: 'monthly' },
+  { id: '2', name: 'رواتب الموظفين', amount: 5500000, frequency: 'monthly' },
+];
+
+const INITIAL_RECIPES: Recipe[] = [
+  { id: '1', name: 'برجر كلاسيك العائلي', ingredients: [{ ingredientId: '3', quantity: 0.15, cost: 2100 }], sellingPrice: 12000, currency: Currency.IQD, category: 'وجبات رئيسية', competitors: [] },
+  { id: '2', name: 'بيتزا دجاج سبايسي', ingredients: [], sellingPrice: 0, currency: Currency.IQD, category: 'بيتزا', competitors: [] },
+];
+
 const App: React.FC = () => {
-  const [activePath, setActivePath] = useState('dashboard');
-  const [userProfile] = useState<UserProfile>(MOCK_USER);
+  const [activePath, setActivePath] = useState('landing');
+  const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('mp_session') === 'active');
+  const [userProfile, setUserProfile] = useState<UserProfile>(MOCK_USER);
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
+  
+  const [ingredients, setIngredients] = useState<Ingredient[]>(INITIAL_INGREDIENTS);
+  const [costs, setCosts] = useState<OperatingCost[]>(INITIAL_COSTS);
+  const [recipes, setRecipes] = useState<Recipe[]>(INITIAL_RECIPES);
 
-  // Simple Router based on state
-  const renderPage = () => {
-    if (activePath.startsWith('recipes/')) {
-      const id = activePath.split('/')[1];
-      return <RecipeDetail recipeId={id} onBack={() => handleNavigate('recipes')} />;
-    }
+  // Derived Values
+  const monthlyOverhead = useMemo(() => {
+    return costs.reduce((sum, c) => sum + (c.frequency === 'monthly' ? c.amount : c.amount / 12), 0);
+  }, [costs]);
 
-    switch (activePath) {
-      case 'dashboard': return <Dashboard />;
-      case 'ingredients': return <Ingredients />;
-      case 'recipes': return <Recipes onRecipeSelect={(id) => handleNavigate(`recipes/${id}`)} />;
-      case 'pricing-recs': return <PricingRecommendations />;
-      case 'costs': return <OperatingCosts />;
-      case 'billing': return <Billing currentPlan={userProfile.plan} />;
-      default: return <Dashboard />;
-    }
-  };
-
-  useEffect(() => {
-    const hash = window.location.hash.replace('#', '');
-    if (hash) setActivePath(hash);
-  }, []);
+  const overheadPerDish = useMemo(() => {
+    return userProfile.baselineMonthlyPlates > 0 ? monthlyOverhead / userProfile.baselineMonthlyPlates : 0;
+  }, [monthlyOverhead, userProfile.baselineMonthlyPlates]);
 
   const handleNavigate = (path: string) => {
     setActivePath(path);
     window.location.hash = path;
+    window.scrollTo(0, 0);
   };
+
+  const handleLogin = () => {
+    localStorage.setItem('mp_session', 'active');
+    setIsLoggedIn(true);
+    handleNavigate('dashboard');
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('mp_session');
+    localStorage.removeItem('mp_setup_complete');
+    setIsLoggedIn(false);
+    handleNavigate('landing');
+  };
+
+  const handleSetupComplete = () => {
+    localStorage.setItem('mp_setup_complete', 'true');
+    localStorage.setItem('mp_session', 'active');
+    setIsLoggedIn(true);
+    handleNavigate('dashboard');
+  };
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      let hash = window.location.hash.replace('#', '');
+      if (!hash) hash = 'landing';
+      
+      const appPaths = ['dashboard', 'ingredients', 'recipes', 'pricing-recs', 'sales-import', 'ai-hub', 'account', 'offers', 'costs', 'billing', 'reports'];
+      const authPaths = ['login', 'register', 'setup'];
+      
+      const isTryingToAccessApp = appPaths.some(p => hash.startsWith(p));
+      const hasSession = localStorage.getItem('mp_session') === 'active';
+      const setupComplete = localStorage.getItem('mp_setup_complete') === 'true';
+
+      // Security check
+      if (isTryingToAccessApp && !hasSession) {
+        handleNavigate('login');
+        return;
+      }
+
+      // If logged in but setup not complete, force setup
+      if (hasSession && !setupComplete && hash !== 'setup') {
+        handleNavigate('setup');
+        return;
+      }
+
+      // If setup complete, don't allow access to setup page
+      if (setupComplete && hash === 'setup') {
+        handleNavigate('dashboard');
+        return;
+      }
+
+      setActivePath(hash);
+      setIsLoggedIn(hasSession);
+    };
+    
+    window.addEventListener('hashchange', handleHashChange);
+    handleHashChange();
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const renderPublicPage = () => {
+    switch (activePath) {
+      case 'landing': return <Landing onGetStarted={() => handleNavigate('register')} />;
+      case 'pricing': return <PublicPricing onSelectPlan={() => handleNavigate('register')} />;
+      case 'features': return <PublicFeatures />;
+      case 'contact': return <PublicContact />;
+      case 'terms': return <PublicLegal type="terms" />;
+      case 'privacy': return <PublicLegal type="privacy" />;
+      case 'login': return <Login onLogin={handleLogin} />;
+      case 'register': return <Register onRegister={() => handleNavigate('setup')} />;
+      case 'setup': return <Setup onComplete={handleSetupComplete} />;
+      default: return <Landing onGetStarted={() => handleNavigate('register')} />;
+    }
+  };
+
+  const renderAppPage = () => {
+    if (activePath === 'recipes/new') {
+      return (
+        <RecipeNew 
+          ingredientsList={ingredients} 
+          overheadPerDish={overheadPerDish}
+          targetMargin={userProfile.targetMarginPercent}
+          onSave={(newRecipe) => {
+            setRecipes([...recipes, newRecipe]);
+            handleNavigate('recipes');
+          }}
+          onBack={() => handleNavigate('recipes')}
+        />
+      );
+    }
+
+    if (activePath.startsWith('recipes/')) {
+      const id = activePath.split('/')[1];
+      const recipe = recipes.find(r => r.id === id);
+      if (!recipe) return <Recipes recipes={recipes} ingredients={ingredients} overheadPerDish={overheadPerDish} onRecipeSelect={(id) => handleNavigate(`recipes/${id}`)} onAddNew={() => handleNavigate('recipes/new')} />;
+      
+      return (
+        <RecipeDetail 
+          recipe={recipe} 
+          ingredientsList={ingredients}
+          overheadPerDish={overheadPerDish}
+          userProfile={userProfile}
+          onUpdate={(updatedRecipe) => {
+            setRecipes(recipes.map(r => r.id === updatedRecipe.id ? updatedRecipe : r));
+          }}
+          onBack={() => handleNavigate('recipes')} 
+        />
+      );
+    }
+
+    switch (activePath) {
+      case 'dashboard': return <Dashboard ingredients={ingredients} costs={costs} recipes={recipes} onNavigate={handleNavigate} />;
+      case 'ingredients': return <Ingredients ingredients={ingredients} setIngredients={setIngredients} />;
+      case 'recipes': return <Recipes recipes={recipes} ingredients={ingredients} overheadPerDish={overheadPerDish} onRecipeSelect={(id) => handleNavigate(`recipes/${id}`)} onAddNew={() => handleNavigate('recipes/new')} />;
+      case 'pricing-recs': return <PricingRecommendations />;
+      case 'sales-import': return <SalesImport />;
+      case 'ai-hub': return <AIHub />;
+      case 'account': return <Account user={userProfile} setUser={(u) => setUserProfile(u as UserProfile)} onNavigate={handleNavigate} onLogout={handleLogout} />;
+      case 'offers': return <OffersRules />;
+      case 'costs': return <OperatingCosts costs={costs} setCosts={setCosts} />;
+      case 'billing': return <Billing user={userProfile} />;
+      case 'reports': return <Reports recipes={recipes} ingredients={ingredients} costs={costs} overheadPerDish={overheadPerDish} />;
+      default: return <Dashboard ingredients={ingredients} costs={costs} recipes={recipes} onNavigate={handleNavigate} />;
+    }
+  };
+
+  const authPaths = ['login', 'register', 'setup'];
+  const appPaths = ['dashboard', 'ingredients', 'recipes', 'pricing-recs', 'sales-import', 'ai-hub', 'account', 'offers', 'costs', 'billing', 'reports'];
+  const isInsideApp = appPaths.some(p => activePath.startsWith(p));
+
+  if (!isLoggedIn || !isInsideApp) {
+    if (authPaths.includes(activePath)) return <div className="min-h-screen bg-slate-50">{renderPublicPage()}</div>;
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <PublicNav activePath={activePath} onNavigate={handleNavigate} />
+        <main className="flex-1">{renderPublicPage()}</main>
+        <PublicFooter onNavigate={handleNavigate} />
+      </div>
+    );
+  }
 
   return (
     <>
       <Layout 
-        activePath={activePath.startsWith('recipes/') ? 'recipes' : activePath} 
+        activePath={activePath.startsWith('recipes') ? 'recipes' : activePath} 
         onNavigate={handleNavigate} 
+        onLogout={handleLogout}
         userProfile={userProfile}
       >
-        {renderPage()}
+        {renderAppPage()}
       </Layout>
 
-      {/* Global AI Assistant Button */}
       <button 
         onClick={() => setIsAiPanelOpen(true)}
         className="fixed bottom-8 left-8 z-50 w-16 h-16 bg-blue-600 text-white rounded-2xl shadow-2xl flex items-center justify-center hover:bg-blue-700 hover:scale-110 active:scale-95 transition-all duration-300 group"
       >
-        <Sparkles size={28} className="group-hover:rotate-12 transition-transform" />
-        <span className="absolute right-full mr-4 bg-white text-blue-600 px-4 py-2 rounded-xl text-xs font-black shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-blue-50">
-          المساعد الذكي
-        </span>
+        <Sparkles size={28} />
       </button>
 
       <AIChatPanel isOpen={isAiPanelOpen} onClose={() => setIsAiPanelOpen(false)} />

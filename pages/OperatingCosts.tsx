@@ -1,18 +1,41 @@
 
 import React, { useState } from 'react';
-import { Plus, Trash2, Home, Power, Users, CreditCard, PieChart, TrendingDown, Target, Zap } from 'lucide-react';
+import { Plus, Trash2, Home, Power, Users, CreditCard, PieChart, TrendingDown, Target, Zap, X } from 'lucide-react';
 import { OperatingCost } from '../types';
 
-const INITIAL_COSTS: OperatingCost[] = [
-  { id: '1', name: 'إيجار المحل', amount: 2000000, frequency: 'monthly' },
-  { id: '2', name: 'كهرباء ومولد', amount: 450000, frequency: 'monthly' },
-  { id: '3', name: 'رواتب الموظفين', amount: 5500000, frequency: 'monthly' },
-  { id: '4', name: 'تسويق واعلانات', amount: 300000, frequency: 'monthly' },
-];
+interface OperatingCostsProps {
+  costs: OperatingCost[];
+  setCosts: React.Dispatch<React.SetStateAction<OperatingCost[]>>;
+}
 
-const OperatingCosts: React.FC = () => {
-  const [costs, setCosts] = useState<OperatingCost[]>(INITIAL_COSTS);
+const OperatingCosts: React.FC<OperatingCostsProps> = ({ costs, setCosts }) => {
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newCost, setNewCost] = useState<Partial<OperatingCost>>({
+    name: '',
+    amount: 0,
+    frequency: 'monthly'
+  });
+
   const totalMonthly = costs.reduce((sum, c) => sum + (c.frequency === 'monthly' ? c.amount : c.amount / 12), 0);
+
+  const handleAdd = () => {
+    if (!newCost.name || !newCost.amount) return;
+    const item: OperatingCost = {
+      id: Date.now().toString(),
+      name: newCost.name!,
+      amount: Number(newCost.amount),
+      frequency: newCost.frequency! as any
+    };
+    setCosts([item, ...costs]);
+    setIsAddModalOpen(false);
+    setNewCost({ name: '', amount: 0, frequency: 'monthly' });
+  };
+
+  const handleDelete = (id: string) => {
+    if (window.confirm('هل أنت متأكد من حذف هذا المصروف؟')) {
+      setCosts(costs.filter(c => c.id !== id));
+    }
+  };
 
   const getIcon = (name: string) => {
     if (name.includes('إيجار')) return <Home className="text-blue-500" />;
@@ -29,14 +52,16 @@ const OperatingCosts: React.FC = () => {
           <h1 className="text-3xl font-black text-slate-800 tracking-tight leading-none mb-3">مصاريف التشغيل (Overhead)</h1>
           <p className="text-slate-400 font-bold tracking-wide uppercase text-xs">Define fixed costs to calculate true break-even points</p>
         </div>
-        <button className="flex items-center gap-3 bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-sm shadow-2xl shadow-blue-600/30 hover:bg-blue-700 transition-all active:scale-95">
+        <button 
+          onClick={() => setIsAddModalOpen(true)}
+          className="flex items-center gap-3 bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-sm shadow-2xl shadow-blue-600/30 hover:bg-blue-700 transition-all active:scale-95"
+        >
           <Plus size={20} />
           إضافة مصروف جديد
         </button>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
-        {/* Main List */}
         <div className="xl:col-span-8 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {costs.map((cost) => (
@@ -46,7 +71,10 @@ const OperatingCosts: React.FC = () => {
                   <div className="p-4 bg-slate-50 rounded-2xl group-hover:bg-blue-50 transition-colors">
                     {getIcon(cost.name)}
                   </div>
-                  <button className="w-10 h-10 flex items-center justify-center text-slate-300 hover:bg-rose-50 hover:text-rose-500 rounded-xl transition-all opacity-0 group-hover:opacity-100">
+                  <button 
+                    onClick={() => handleDelete(cost.id)}
+                    className="w-10 h-10 flex items-center justify-center text-slate-300 hover:bg-rose-50 hover:text-rose-500 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                  >
                     <Trash2 size={20} />
                   </button>
                 </div>
@@ -60,21 +88,12 @@ const OperatingCosts: React.FC = () => {
                    <span className="text-3xl font-black text-slate-900 leading-none">{cost.amount.toLocaleString()}</span>
                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">IQD</span>
                 </div>
-                
-                <div className="mt-6 pt-6 border-t border-slate-50 flex items-center justify-between">
-                   <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Impact Weight</span>
-                   <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-500 rounded-full" style={{ width: `${(cost.amount / totalMonthly) * 100}%` }}></div>
-                   </div>
-                </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Sidebar Summary */}
         <div className="xl:col-span-4 space-y-10">
-           {/* Total Card */}
            <div className="bg-slate-900 text-white p-10 rounded-[3rem] shadow-2xl relative overflow-hidden group">
               <div className="absolute -top-20 -right-20 w-60 h-60 bg-blue-600/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
               
@@ -91,35 +110,73 @@ const OperatingCosts: React.FC = () => {
                       <span className="text-blue-500 font-black text-sm">IQD</span>
                    </div>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-8 border-t border-slate-800 pt-10">
-                   <div>
-                      <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-2 block">تكلفة اليوم</span>
-                      <p className="text-lg font-black text-slate-200">{(totalMonthly / 30).toLocaleString()} <span className="text-[10px]">IQD</span></p>
-                   </div>
-                   <div>
-                      <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-2 block">النسبة للأرباح</span>
-                      <p className="text-lg font-black text-emerald-500">22%</p>
-                   </div>
-                </div>
               </div>
-           </div>
-
-           {/* AI Insight Box */}
-           <div className="glass-card p-10 rounded-[3rem] border border-white space-y-8">
-              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner">
-                <Zap size={32} strokeWidth={2.5} />
-              </div>
-              <div className="space-y-3">
-                 <h4 className="text-xl font-black text-slate-800">تحسين التكاليف AI</h4>
-                 <p className="text-sm text-slate-400 font-medium leading-relaxed">بناءً على حجم مطعمك، مصاريف الرواتب أعلى بنسبة 12% من متوسط السوق المحلي. هل ترغب في اقتراح هيكلة جديدة؟</p>
-              </div>
-              <button className="w-full py-5 bg-slate-900 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-slate-800 transition-all shadow-xl active:scale-95">
-                 بدء التحليل الذكي
-              </button>
            </div>
         </div>
       </div>
+
+      {/* Add Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+           <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-white p-10 space-y-8 relative overflow-hidden">
+              <div className="flex justify-between items-center">
+                 <h3 className="text-2xl font-black text-slate-800">إضافة مصروف جديد</h3>
+                 <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                    <X size={24} />
+                 </button>
+              </div>
+              
+              <div className="space-y-6">
+                 <div className="space-y-2">
+                    <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest mr-2">اسم المصروف</label>
+                    <input 
+                      type="text" 
+                      value={newCost.name}
+                      onChange={(e) => setNewCost({...newCost, name: e.target.value})}
+                      className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold focus:ring-4 focus:ring-blue-100 outline-none" 
+                    />
+                 </div>
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                       <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest mr-2">المبلغ</label>
+                       <input 
+                        type="number" 
+                        value={newCost.amount}
+                        onChange={(e) => setNewCost({...newCost, amount: Number(e.target.value)})}
+                        className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold focus:ring-4 focus:ring-blue-100 outline-none" 
+                       />
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest mr-2">التكرار</label>
+                       <select 
+                        value={newCost.frequency}
+                        onChange={(e) => setNewCost({...newCost, frequency: e.target.value as any})}
+                        className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold focus:ring-4 focus:ring-blue-100 outline-none" 
+                       >
+                         <option value="monthly">شهري</option>
+                         <option value="yearly">سنوي</option>
+                       </select>
+                    </div>
+                 </div>
+              </div>
+              
+              <div className="flex gap-4 pt-4">
+                 <button 
+                   onClick={() => setIsAddModalOpen(false)}
+                   className="flex-1 py-4 bg-slate-50 text-slate-500 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-100 transition-all"
+                 >
+                   إلغاء
+                 </button>
+                 <button 
+                   onClick={handleAdd}
+                   className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20"
+                 >
+                   حفظ المصروف
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 };
